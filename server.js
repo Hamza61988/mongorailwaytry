@@ -35,7 +35,8 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', UserSchema);
 
-// REGISTER route
+
+
 app.post('/register', async (req, res) => {
   try {
     const { name, email, age, password } = req.body;
@@ -72,7 +73,7 @@ app.post('/authenticate', async (req, res) => {
       return res.status(401).json({ exists: false, message: "Invalid password" });
     }
 
-    res.status(200).json({ exists: true, user });
+    res.status(200).json({ message: 'Logged in' });
   } catch (err) {
     console.error('Error during authentication:', err);
     res.status(500).json({ error: 'Server error' });
