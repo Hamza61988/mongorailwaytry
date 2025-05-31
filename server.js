@@ -17,18 +17,17 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 5000;
 const SECRET_KEY = process.env.JWT_SECRET || 'your_secret_key';
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// DB Setup
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => console.log('MongoDB connected'))
   .catch((err) => console.error('MongoDB error:', err));
 
-// User schema
+// User Schema
 const UserSchema = new mongoose.Schema({
   name: { type: String, unique: true },
   email: String,
@@ -37,7 +36,16 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
-// Auth routes
+// ✅ Message Schema
+const MessageSchema = new mongoose.Schema({
+  from: String,
+  to: String,
+  message: String,
+  timestamp: { type: Date, default: Date.now }
+});
+const Message = mongoose.model('Message', MessageSchema);
+
+// Auth Routes
 app.post('/register', async (req, res) => {
   try {
     const { name, email, age, password } = req.body;
@@ -78,7 +86,24 @@ app.get('/verify-token', (req, res) => {
   });
 });
 
-// Socket.io logic
+// ✅ Get message history between two users
+app.get('/messages/:user1/:user2', async (req, res) => {
+  const { user1, user2 } = req.params;
+  try {
+    const messages = await Message.find({
+      $or: [
+        { from: user1, to: user2 },
+        { from: user2, to: user1 }
+      ]
+    }).sort({ timestamp: 1 });
+
+    res.status(200).json(messages);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// Socket.IO logic
 const userMap = new Map();
 
 io.on('connection', (socket) => {
@@ -90,13 +115,19 @@ io.on('connection', (socket) => {
     emitOnlineUsers();
   });
 
-  socket.on('private-message', ({ targetName, message }) => {
+  socket.on('private-message', async ({ targetName, message }) => {
+    const fromName = [...userMap.entries()].find(([_, id]) => id === socket.id)?.[0] || 'unknown';
     const targetSocketId = userMap.get(targetName);
+
     if (targetSocketId) {
-      socket.to(targetSocketId).emit('private-message', {
-        from: [...userMap.entries()].find(([_, id]) => id === socket.id)?.[0] || 'unknown',
-        message,
-      });
+      socket.to(targetSocketId).emit('private-message', { from: fromName, message });
+    }
+
+    // ✅ Save message to MongoDB
+    try {
+      await Message.create({ from: fromName, to: targetName, message });
+    } catch (err) {
+      console.error('Failed to save message:', err);
     }
   });
 
