@@ -48,12 +48,12 @@ const Message = mongoose.model('Message', MessageSchema);
 // Auth Routes
 app.post('/register', async (req, res) => {
   try {
-    const { name, email, age, password } = req.body;
+    const { name, email, age, image ,  password } = req.body;
     const existing = await User.findOne({ name });
     if (existing) return res.status(400).json({ message: 'Name already taken' });
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, age, password: hashed });
+    const user = new User({ name, email, age, image ,  password: hashed });
     await user.save();
     res.status(200).json({ message: 'User registered' });
   } catch {
