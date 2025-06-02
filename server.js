@@ -62,9 +62,9 @@ app.post('/register', async (req, res) => {
 });
 
 app.post('/authenticate', async (req, res) => {
-  const { name, email, age, password } = req.body;
+  const { name, password } = req.body;
   try {
-    const user = await User.findOne({ name, email, age });
+    const user = await User.findOne({ name });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const match = await bcrypt.compare(password, user.password);
