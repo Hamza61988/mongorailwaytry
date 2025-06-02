@@ -50,12 +50,15 @@ const Message = mongoose.model('Message', MessageSchema);
 app.post('/register', async (req, res) => {
   try {
     const { name, email, age, image ,  password } = req.body;
+    console.log(req.body);
+
     const existing = await User.findOne({ name });
     if (existing) return res.status(400).json({ message: 'Name already taken' });
 
     const hashed = await bcrypt.hash(password, 10);
     const user = new User({ name, email, age, image ,  password: hashed });
     await user.save();
+
     res.status(200).json({ message: 'User registered' });
   } catch {
     res.status(500).json({ error: 'Registration failed' });
@@ -77,6 +80,24 @@ app.post('/authenticate', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+
+app.get('/username/:name', async (req, res) => {
+  try {
+    const { name } = req.params;
+    const user = await User.findOne({ name }).select('-password'); // Exclude password
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json(user); // Will include: name, email, age, image
+  } catch (err) {
+    console.error('Error fetching user:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 
 app.get('/verify-token', (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
