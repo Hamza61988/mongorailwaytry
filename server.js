@@ -33,6 +33,7 @@ const UserSchema = new mongoose.Schema({
   email: String,
   age: Number,
   password: String,
+  image: String
 });
 const User = mongoose.model('User', UserSchema);
 
